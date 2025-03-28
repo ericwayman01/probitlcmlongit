@@ -1,0 +1,40 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11", "numpy"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "probitlcmlongit"
+version = "0.0.1"
+description="Implements models developed by Wayman et al. in the article http://arxiv.org/abs/2503.20940"
+readme="README.rst"
+authors = [
+  { name = "Eric Alan Wayman", email = "ericwaymanpublications@mailworks.org" },
+]
+requires-python = ">=3.11"
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
+]
+
+dependencies = [
+    "pybind11",
+    "numpy<=1.26.4",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "scikit_learn",
+    "jinja2"
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx >=4.0",
+  "sphinx-copybutton",
+  "sphinx-autodoc-typehints",
+  "furo"
+]
+
+[project.urls]
+Homepage = "https://github.com/ericwayman01/probitlcmlongit"

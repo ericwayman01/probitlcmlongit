@@ -1,0 +1,1 @@
+.. automodule:: probitlcmlongit._core
