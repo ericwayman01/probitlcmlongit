@@ -187,7 +187,7 @@ One runs
 
 ::
 
-   python3.X -m probitlcmlongit.hyperparam_tuning --environ laptop --dir_name sim_for_manuscript --type_of_run simulation --scenario_or_setup_number 1
+   python3.X -m probitlcmlongit.hyperparam_tuning --environ laptop --dir_name simulation_longit --type_of_run simulation --scenario_or_setup_number 1 --custom_delta 0 --missing_data 0
 
 The output will appear in the processing directory, in ``<process_dir>/<sim_info_dir_name>/hyperparam_tuning/scenario_<scenarionum>_<hyperparamname>_results.txt``. Each line of the file contains the following content:
 
@@ -229,8 +229,8 @@ Some example simulation run commands:
 
 ::
    
-   python3.X -m probitlcmlongit.scenario_launch --environ laptop --sim_info_dir_name sim_for_manuscript --scenarionumber 1
-   python3.X -m probitlcmlongit.scenario_replics_postprocess --environ laptop --sim_info_dir_name sim_for_manuscript --scenarionumber 1
+   python3.X -m probitlcmlongit.scenario_launch --environ laptop --sim_info_dir_name sim_for_manuscript --scenarionumber 1 --missing_data 0
+   python3.X -m probitlcmlongit.scenario_replics_postprocess --environ laptop --sim_info_dir_name sim_for_manuscript --scenario_num 1
 
 Once all scenarios for a simulation have finished running, a report on all scenarios can be built using the ``build_report_all_scenarios`` module. The command is
 
@@ -345,11 +345,11 @@ The data in ``responses.csv`` must be zero-based, i.e. a column ``j`` must run f
 Performing hyperparameter tuning
 --------------------------------
 
-One runs
+One runs (for example)
 
 ::
 
-   python3.X -m probitlcmlongit.hyperparam_tuning --environ laptop --dir_name sim_for_manuscript --type_of_run data_analysis --scenario_or_setup_number 1
+   python3.X -m probitlcmlongit.hyperparam_tuning --environ laptop --dir_name sim_for_manuscript --type_of_run data_analysis --scenario_or_setup_number 1 --custom_delta 0 --missing_data 0
 
 The content of the file ``02_decided_hyperparam_vals.json`` should be filled in based on the results of hyperparameter tuning.
    
@@ -360,23 +360,80 @@ To perform a data analysis, run, for example
 
 ::
    
-   python3.X -m probitlcmlongit.data_analysis_run --environ laptop --dataset tang --setup_num 1 --custom_delta 0
+   python3.X -m probitlcmlongit.data_analysis_run --environ laptop --dataset tang --setup_num 1 --custom_delta 0 --missing_data 0
 
 The model is exploratory, but can be run in a confirmatory fashion with a fixed delta matrix. If one wants to run a confirmatory model, one must place a file titled ``custom_delta.txt`` in the ``<dataset_name>`` directory. The file should be in ``arma_ascii`` format and have the correct dimensions (namely, H by J). Then one would run, for example,
 
 ::
    
-   python3.X -m probitlcmlongit.data_analysis_run --environ laptop --dataset tang --setup_num 1 --custom_delta 1
+   python3.X -m probitlcmlongit.data_analysis_run --environ laptop --dataset tang --setup_num 1 --custom_delta 1 --missing_data 0
 
 Note that the confirmatory (custom delta) functionality is only available in laptop mode.
+
+Missing data is supported for the following situation: a subset of respondent id's of the full dataset are missing entire time points worth of response data. As described in the manuscript, the model assumes these are missing completely at random (MCAR). The following files are required:
+
+::
+
+   md_respondent_ids.txt
+   md_pos_missing.json
+   md_pos_present.json
+
+``md_respondent_ids.txt`` is an Armadillo ``uvec`` saved in ``arma_ascii`` format containing the row id numbers of the respondents with missing data.
+
+``md_pos_missing.json`` contains one JSON array, the elements of which are arrays containing the missing time points for a respondent id from ``missing_data_respondents.txt``. The arrays appear in order of respondent id.
+
+``md_pos_present.json`` contains one JSON array, the elements of which are arrays containing the present time points for a respondent id from ``missing_data_respondents.txt``. The arrays appear in order of respondent id.
+
+For each respondent id, the corresponding arrays for ``md_pos_missing.json`` and ``md_pos_present.json`` are disjoint, and their union is ``[1, ..., T]``.
+
+``md_respondent_ids.txt``:
+
+::
+
+   ARMA_MAT_TXT_IU008
+   115 1
+   1
+   2
+   3
+   4
+   5
+   6
+   8
+   ...
+
+
+``md_pos_missing.json``:
+
+::
    
+   [[19, 23, 24, 25, 30], [25], [1, 6, 12, 18, 23], ...]
+
+
+``md_pos_present.json``:
+
+::
+
+   [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 26, 27, 28, 29], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30], [2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30], ...]
+
+
+Convergence diagnostics
+-----------------------
+
+Several convergence diagnostics are available. For a scenario (simulation) or a setup (data analysis) that has been run for which the draws files have not been erased, one can run for example
+
+::
+
+   python3.X -m probitlcmlongit.call_func_across_draws --func_name geweke --environ laptop --results_dir_name addtl_longit_sim --type_of_run simulation --scenario_or_setup_num 1
+   python3.x -m probitlcmlongit.call_func_across_draws --func_name geweke --environ laptop --results_dir_name addtl_longit_sim --type_of_run data_analysis --scenario_or_setup_num 1 --chain_num 1
+
+
 Model evaluation
 ----------------
 Run, for example
 
 ::
 
-   python3.x -m probitlcmlongit.calculate_waic --environ laptop --dataset tang --setup_num 1 --chain_number 1
+   python3.x -m probitlcmlongit.calculate_waic --environ laptop --dataset tang --setup_num 1 --chain_number 1 --missing_data 0
 
 Seed numbers
 ============

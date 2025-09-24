@@ -68,6 +68,15 @@ struct OtherVals {
     arma::uword ystar_and_kappa_accept_count;
     bool custom_delta;
     arma::umat custom_delta_matrix;
+    //// missing data related
+    arma::field<arma::uvec> md_pos_missing;
+    arma::field<arma::uvec> md_pos_present; // not used in simulations
+    arma::uvec md_respondent_ids;
+    arma::uvec respondent_counts;
+    arma::umat Ymat_orig;
+    arma::field<arma::uvec> md_missing_row_nums; // used for sampling
+    arma::field<arma::uvec> md_missing_row_nums_nonfanned; // used for initialization
+    double missing_data_pct; // only used for simulation
 };
 
 #endif

@@ -507,11 +507,159 @@ arma::urowvec calc_total_class_counts_for_single_draw(
     return arma::trans(myhist);
 }
 
+// missing data-related
+arma::field<arma::uvec> load_missing_data_positions(
+        std::string dataset_dir,
+        std::string fname) {
+    std::string fpath = dataset_dir + "/" + fname;
+    std::ifstream my_fstream(fpath);
+    nlohmann::json my_json_obj = nlohmann::json::parse(my_fstream);
+    arma::uword i = 0;
+    int my_size = my_json_obj.size();
+    arma::field<arma::uvec > my_field(my_size);
+    for (auto & element : my_json_obj) {
+        std::vector<unsigned int> vec1 = \
+            element.get<std::vector<unsigned int> >();
+        arma::uvec my_uvec = arma::conv_to<arma::uvec>::from(vec1);
+        my_field(i) = my_uvec;
+        i += 1;
+    }
+    return my_field;
+}
+
+// missing data-related
+// the rows operated on here are in fanned style
+void find_missing_row_nums(OtherVals & othervals) {
+    const arma::uword & N = othervals.dimensions.at("N");
+    arma::uword n_missing_resps = othervals.md_respondent_ids.n_elem;
+    for (arma::uword i = 0; i < n_missing_resps; ++i) {
+        arma::uword resp_id = othervals.md_respondent_ids(i);
+        arma::uvec missing_stuff = othervals.md_pos_missing(i);
+        othervals.md_missing_row_nums(i) = N * (missing_stuff - 1) +
+            (resp_id - 1);
+    }
+}
+
+// missing data-related
+// the rows operated on here are in non-fanned style
+void find_missing_row_nums_nonfanned(OtherVals & othervals) {
+    const arma::uword & N = othervals.dimensions.at("N");
+    const arma::uword & T = othervals.dimensions.at("T");
+    arma::uword n_resps = othervals.respondent_counts.n_elem;
+    arma::uword ctr_rows = 0;
+    arma::uword ctr_md = 0;
+    for (arma::uword resp_num = 1; resp_num <= n_resps; ++resp_num) {
+        if (othervals.respondent_counts(resp_num - 1) <  T) {
+            arma::uvec my_rows = othervals.md_pos_missing(ctr_md);
+            my_rows = my_rows - 1 + ctr_rows;
+            othervals.md_missing_row_nums_nonfanned(ctr_md) = my_rows;
+            ctr_md += 1;
+        }
+        ctr_rows += T;
+    }
+}
+
+// missing data-related
+// rearranges from fanned to non-fanned
+arma::umat rearrange_data_to_nonfanned_umat(const arma::umat & data_mat,
+                                            arma::uword N, arma::uword T) {
+    arma::uvec new_pos(N * T);
+    arma::uword idx_start = 0;
+    arma::uword idx_end = T - 1;
+    for (arma::uword y = 0; y <= N - 1; ++y) {
+        arma::uvec pos_vec = arma::regspace<arma::uvec>(y, N, y + (T - 1) * N);
+        new_pos.rows(idx_start, idx_end) = pos_vec;
+        idx_start += T;
+        idx_end += T;
+    }
+    return data_mat.rows(new_pos);
+}
+
+// missing data-related
+// rearranges from non-fanned to fanned
+arma::umat rearrange_data_umat(const arma::umat & data_mat,
+                               arma::uword N, arma::uword T) {
+    arma::uvec new_pos(N * T);
+    arma::uword idx_start = 0;
+    arma::uword idx_end = N - 1;
+    for (arma::uword y = 0; y <= T - 1; ++y) {
+        arma::uvec pos_vec = arma::regspace<arma::uvec>(y, T, y + (N - 1) * T);
+        new_pos.rows(idx_start, idx_end) = pos_vec;
+        idx_start += N;
+        idx_end += N;
+    }
+    return data_mat.rows(new_pos);
+}
+
+// missing data-related
+// for data analysis only
+// returns positions of missing rows
+void build_Ymat_w_missing_rows_empty(OtherVals & othervals,
+                                     arma::umat & Ymat) {
+    const arma::uword & N = othervals.dimensions.at("N");
+    const arma::uword & T = othervals.dimensions.at("T");
+    // do work
+    Ymat.zeros();
+    // initialize some
+    arma::uword n_resps = othervals.respondent_counts.n_elem;
+    arma::uword ctr_md_resps = 1; // 1-based
+    arma::uword ctr_Ymat_orig = 0; // 0-based
+    arma::uword ctr_Ymat = 0; // 0-based
+    arma::uvec dest_rows;
+    arma::uvec orig_rows;
+    for (arma::uword resp_num = 1; resp_num <= n_resps; ++resp_num) {
+        // check if has missing data
+        if (othervals.respondent_counts(resp_num - 1) ==  T) {
+            // increment both by T
+            arma::uvec my_dest_rows = arma::regspace<arma::uvec>(
+                ctr_Ymat, ctr_Ymat + T - 1);
+            arma::uvec my_orig_rows = arma::regspace<arma::uvec>(
+                ctr_Ymat_orig, ctr_Ymat_orig + T - 1);
+            Ymat.rows(my_dest_rows) = othervals.Ymat_orig.rows(my_orig_rows);
+            ctr_Ymat_orig += T;
+            ctr_Ymat += T;
+        } else {
+            arma::uvec my_dest_rows = othervals.md_pos_present(
+                ctr_md_resps - 1);
+            my_dest_rows = my_dest_rows - 1 + ctr_Ymat;
+            arma::uword thelen = othervals.respondent_counts(resp_num - 1);
+            arma::uvec my_orig_rows = arma::regspace<arma::uvec>(
+                ctr_Ymat_orig, ctr_Ymat_orig + thelen - 1);
+            Ymat.rows(my_dest_rows) = othervals.Ymat_orig.rows(my_orig_rows);
+            // save missing_rows_vec
+            // arma::uvec missing_rows_vec = othervals.md_pos_missing[
+            //     ctr_md_resps - 1](i);
+            // othervals.missing_data.missing_which_pos(
+            //     ctr_md_resps - 1) = missing_rows_vec;
+            // missing_rows_vec = missing_rows_vec - 1 + ctr_Ymat;
+            // othervals.missing_data.missing_row_ids(
+            //     ctr_md_resps - 1) = missing_rows_vec;
+            // increment stuff
+            ctr_Ymat_orig += thelen;
+            ctr_Ymat += T;
+            ctr_md_resps += 1;
+        }
+    }
+}
+
+// void save_field_of_uvecs(arma::field<arma::uvec> & gino,
+//                          std::string fname) {
+//     std::ofstream mystream(fname); 
+//     arma::uword N = gino.n_elem;
+//     for (arma::uword n = 0; n < N; ++n) {
+//         mystream << "n: " << std::to_string(n) << std::endl;
+//         arma::uvec sujit = gino(n);
+//         sujit.save(mystream, arma::arma_ascii);
+//         mystream << std::endl << std::endl;
+//     }
+// }
+
 void run_mcmc(DatagenVals & datagenvals,
               OtherVals & othervals, MCMCDraws & draws,
-              const arma::umat & Ymat,
+              arma::umat & Ymat,
               const arma::mat & Xmat,
-              bool is_simulation) {
+              bool is_simulation,
+              int missing_data) {
     std::cout << "beginning run_mcmc" << std::endl;
     arma::uword draw_number = 1;
     // note: draw_number is zero-based (the first draw is the initialization
@@ -563,6 +711,9 @@ void run_mcmc(DatagenVals & datagenvals,
                                    Xmat, d_one_through_T_minus_one,
                                    draw_number); 
         sample_omega(othervals, draws, draw_number);
+        if (missing_data == 1) {
+            sample_Ymat_missing(othervals, draws, Ymat, draw_number);
+        }
         // transform parameters of expanded model to parameters of
         //     complete data model
         perform_transformations(othervals, draws, draw_number);
@@ -605,16 +756,18 @@ void run_mcmc(DatagenVals & datagenvals,
                 //     the next chunk "cleanly"
                 if (othervals.stream_slice_ctr == othervals.stream_max_val) {
                     // save Ymat_pred_chunk
-                    std::string fname = pad_string_with_zeros(
-                        3, "Ymat_pred_chunk_",
-                        std::to_string(othervals.stream_number));
+                    std::string fname = "Ymat_pred_chunk_"
+                        + pad_string_with_zeros(
+                            std::to_string(othervals.stream_number), 3)
+                        + ".txt";
                     std::string fpath = othervals.replic_path + "/" + fname;
                     draws.Ymat_pred_chunk.save(fpath, arma::arma_ascii);
                     draws.Ymat_pred_chunk.zeros(); // "clear" the cube
                     // save alpha_pred_chunk
-                    fname = pad_string_with_zeros(
-                        3, "alpha_chunk_",
-                        std::to_string(othervals.stream_number));
+                    fname = "alpha_chunk_"
+                        + pad_string_with_zeros(
+                            std::to_string(othervals.stream_number), 3)
+                        + ".txt";
                     fpath = othervals.replic_path + "/" + fname;
                     draws.alpha_chunk.save(fpath, arma::arma_ascii);
                     draws.alpha_chunk.zeros(); // "clear" the cube
@@ -672,7 +825,8 @@ void run_replication(std::string jsonfilename_stem,
                      std::string scenario_datagen_params_path,
                      std::string replic_path,
                      bool hyperparam_tuning,
-                     std::string tuning_path) {
+                     std::string tuning_path,
+                     int missing_data) {
     // read in the json file
     std::string fulljsonfilename = scenario_path + "/" + jsonfilename_stem +
         ".json";
@@ -710,6 +864,12 @@ void run_replication(std::string jsonfilename_stem,
         json_object["burnin"] = 0;
         json_object["total_chain_length"] = 1000;
     }
+    if (missing_data == 1) {
+        std::string md_fname = other_json_files_path + "/"
+            + "01_missing_data_pct.json";
+        nlohmann::json md_obj = read_json_file(md_fname);
+        othervals.missing_data_pct = md_obj[0];
+    }
     // set up path related
     othervals.jsonfilename_stem = jsonfilename_stem;
     othervals.replicnum = replicnum;
@@ -739,10 +899,10 @@ void run_replication(std::string jsonfilename_stem,
     arma::arma_rng::set_seed(seed_value);
     initialize_mcmc_variables(othervals, draws,
                               datagenvals.Ymat, datagenvals.Xmat,
-                              seed_value, datagenvals, true);
+                              seed_value, datagenvals, true, missing_data);
     std::cout << "run_mcmc started" << std::endl;
     run_mcmc(datagenvals, othervals, draws, datagenvals.Ymat, datagenvals.Xmat,
-             true);
+             true, missing_data);
     write_mcmc_output(draws, datagenvals, othervals, true,
                       hyperparam_tuning, scenario_number_zb);
 }
@@ -754,10 +914,12 @@ void run_data_analysis_chain(int setup_num,
                              int chainnum,
                              bool hyperparam_tuning,
                              std::string tuning_path,
-                             int custom_delta) {
+                             int custom_delta,
+                             int missing_data) {
     //// read in data files
     arma::umat Ymat;
     arma::field<std::string> empty_header(0);
+    std::string fname;
     std::string fpath = dataset_dir + "/" + "responses.csv";
     Ymat.load(arma::csv_name(fpath, empty_header,
                              arma::csv_opts::strict));
@@ -779,13 +941,20 @@ void run_data_analysis_chain(int setup_num,
     json_object.update(json_object_two);
     // declare othervals
     OtherVals othervals;
-    // save off copies of these data files in arma_ascii format
-    //     so later they can be loaded using the same functions
-    //     used to load all other results
-    fpath = dataset_dir + "/" + "responses.txt";
-    Ymat.save(fpath, arma::arma_ascii);
-    fpath = dataset_dir + "/" + "covariates.txt";
-    Xmat.save(fpath, arma::arma_ascii);
+    if (missing_data == 1) {
+        // initialize data structures
+        // load md_pos_missing and md_pos_present
+        othervals.md_pos_missing = load_missing_data_positions(
+            dataset_dir, "md_pos_missing.json");
+        othervals.md_pos_present = load_missing_data_positions(
+            dataset_dir, "md_pos_present.json");
+        fname = "md_respondent_ids.txt";
+        fpath = dataset_dir + "/" + fname;
+        othervals.md_respondent_ids.load(fpath);
+        fname = "respondent_counts.txt";
+        fpath = dataset_dir + "/" + fname;
+        othervals.respondent_counts.load(fpath);
+    }
     // hyperparam tuning related
     if (hyperparam_tuning) {
         fulljsonfilename = dataset_dir + "/" +
@@ -814,7 +983,11 @@ void run_data_analysis_chain(int setup_num,
     othervals.tuning_path = tuning_path;
     //// find N, J, and D
     othervals.dimensions["T"] = json_object.at("T");
-    othervals.dimensions["N"] = Ymat.n_rows / othervals.dimensions["T"];
+    if (missing_data == 1) {
+        othervals.dimensions["N"] = othervals.respondent_counts.n_elem;
+    } else {
+        othervals.dimensions["N"] = Ymat.n_rows / othervals.dimensions["T"];
+    }
     othervals.dimensions["J"] = Ymat.n_cols;
     othervals.dimensions["D"] = Xmat.n_cols;
     // find M_j_s and set it in othervals
@@ -829,14 +1002,28 @@ void run_data_analysis_chain(int setup_num,
     set_up_othervals(othervals, json_object, data_analysis_path, false);
     if (custom_delta == 1) {
         othervals.custom_delta = true;
-        std::string fname = "custom_delta.txt";
+        fname = "custom_delta.txt";
         fpath = dataset_dir + "/" + fname;
-        std::cout << fpath << std::endl;
         othervals.custom_delta_matrix = arma::umat();
         othervals.custom_delta_matrix.load(fpath);
         othervals.custom_delta_matrix.print("custom_delta:");
     } else {
         othervals.custom_delta = false;
+    }
+    if (missing_data == 1) {
+        // find missing row numbers
+        othervals.md_missing_row_nums = arma::field<arma::uvec>(
+            othervals.md_respondent_ids.n_elem);
+        othervals.md_missing_row_nums_nonfanned = arma::field<arma::uvec>(
+            othervals.md_respondent_ids.n_elem);
+        find_missing_row_nums(othervals);
+        find_missing_row_nums_nonfanned(othervals);
+        // do more Ymat stuff
+        othervals.Ymat_orig = Ymat;
+        Ymat.clear();
+        Ymat.resize(Xmat.n_rows, othervals.Ymat_orig.n_cols);
+        build_Ymat_w_missing_rows_empty(othervals, Ymat);
+        // note that at this step, Ymat is still in the nonfanned form
     }
     // continue
     // declare draws
@@ -849,9 +1036,10 @@ void run_data_analysis_chain(int setup_num,
     std::cout << "start initialize_mcmc_variables" << std::endl;
     initialize_mcmc_variables(othervals, draws,
                               Ymat, Xmat,
-                              seed_value, datagenvals, false);
+                              seed_value, datagenvals, false,
+                              missing_data);
     std::cout << "start run_mcmc" << std::endl;
-    run_mcmc(datagenvals, othervals, draws, Ymat, Xmat, false);
+    run_mcmc(datagenvals, othervals, draws, Ymat, Xmat, false, missing_data);
     std::cout << "start write_mcmc_output" << std::endl;
     write_mcmc_output(draws, datagenvals, othervals, false, hyperparam_tuning,
                       setup_num);

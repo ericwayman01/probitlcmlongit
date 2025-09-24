@@ -75,8 +75,8 @@ void do_datagen_and_write_values(const OtherVals & othervals,
         arma::uword M_j = othervals.M_j_s(j - 1);
         // initialize full structures
         datagenvals.kappa(j - 1) = arma::mat(1, M_j + 1);
-        std::string fname = pad_string_with_zeros(3, "datagen_kappa_j_",
-                                                  std::to_string(j));
+        std::string fname = "datagen_kappa_j_" +
+            pad_string_with_zeros(std::to_string(j), 3) + ".txt";
         fpath = othervals.scenario_datagen_params_path + "/" + fname;
         arma::rowvec kappa_j;
         kappa_j.load(fpath);
@@ -133,8 +133,8 @@ void do_datagen_and_write_values(const OtherVals & othervals,
                                                     othervals.M_j_s(j - 1));
         // initialize it to all zeros for now; these will be overwritten
         //     in the following for loop
-        std::string fname = pad_string_with_zeros(3, "datagen_theta_j_mat_",
-                                                  std::to_string(j));
+        std::string fname = "datagen_theta_j_mat_" +
+            pad_string_with_zeros(std::to_string(j), 3) + ".txt";
         fpath = othervals.scenario_datagen_params_path + "/" + fname;
         arma::mat theta_j;
         theta_j.load(fpath);

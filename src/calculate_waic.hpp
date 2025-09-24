@@ -20,10 +20,16 @@
 #ifndef HEADERS_CALCULATE_WAIC_HPP_
 #define HEADERS_CALCULATE_WAIC_HPP_
 
+// missing data-related
+arma::uvec create_giant_uvec_of_missing_row_nums(
+        arma::uword,
+        arma::field<arma::uvec> &);
+
 void calculate_waic(int,
                     std::string,
                     std::string,
                     std::string,
+                    int,
                     int);
 
 #endif

@@ -55,17 +55,21 @@ arma::ucube load_arma_ucube_np(std::string path) {
     return mycube;
 }
 
-
-void save_arma_uvec_np(arma::uvec my_uvec, std::string fpath) {
-    my_uvec.save(fpath, arma::arma_ascii);
+arma::vec load_arma_vec_np(std::string path) {
+    arma::vec myvec;
+    myvec.load(path);
+    return myvec;
 }
 
-void save_arma_umat_np(arma::umat my_umat, std::string fpath) {
-    my_umat.save(fpath, arma::arma_ascii);
-}
-
-void save_arma_mat_np(arma::mat my_mat, std::string fpath) {
-    my_mat.save(fpath, arma::arma_ascii);
+// "arma_obj" here means one of: arma::vec, arma::uvec,
+// arma::mat, arma::umat, arma::cube, arma::ucube                         
+template<typename T>
+void save_arma_obj_np(T my_arma_obj, std::string fpath, std::string file_type) {
+    if (file_type == "arma_ascii") {
+        my_arma_obj.save(fpath, arma::arma_ascii);
+    } else if (file_type == "arma_binary") {
+        my_arma_obj.save(fpath, arma::arma_binary);
+    }        
 }
 
 py::array_t<double> generate_covariates_scenario_np(
@@ -118,9 +122,13 @@ PYBIND11_MODULE(_core, m) {
            load_arma_umat_np
            load_arma_cube_np
            load_arma_ucube_np
+           load_arma_vec_np
+           save_arma_vec_np
            save_arma_uvec_np
-           save_arma_umat_np
            save_arma_mat_np
+           save_arma_umat_np
+           save_arma_cube_np
+           save_arma_ucube_np
            generate_design_matrix_np
            generate_covariates_scenario_np
            calculate_basis_vector
@@ -146,10 +154,14 @@ PYBIND11_MODULE(_core, m) {
     m.def("load_arma_umat_np", &load_arma_umat_np);
     m.def("load_arma_cube_np", &load_arma_cube_np);
     m.def("load_arma_ucube_np", &load_arma_ucube_np);
+    m.def("load_arma_vec_np", &load_arma_vec_np);
     // save functions
-    m.def("save_arma_uvec_np", &save_arma_uvec_np);
-    m.def("save_arma_umat_np", &save_arma_umat_np);
-    m.def("save_arma_mat_np", &save_arma_mat_np);
+    m.def("save_arma_vec_np", &save_arma_obj_np<arma::vec>);
+    m.def("save_arma_uvec_np", &save_arma_obj_np<arma::uvec>);
+    m.def("save_arma_mat_np", &save_arma_obj_np<arma::mat>);
+    m.def("save_arma_umat_np", &save_arma_obj_np<arma::umat>);
+    m.def("save_arma_cube_np", &save_arma_obj_np<arma::cube>);
+    m.def("save_arma_ucube_np", &save_arma_obj_np<arma::ucube>);
     // generate functions
     m.def("generate_design_matrix_np", &generate_design_matrix_np, R"pbdoc(
         Wrapper function for generate_design_matrix.

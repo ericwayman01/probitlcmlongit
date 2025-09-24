@@ -107,27 +107,32 @@ def data_analysis_setup(environ, dataset, setup_num):
 
 def save_arma_umat_given_fname(my_umat, data_analysis_path, fname):
     fpath = data_analysis_path.joinpath(fname)
-    _core.save_arma_umat_np(my_umat, str(fpath))
+    _core.save_arma_umat_np(my_umat, str(fpath), "arma_ascii")
 
 def data_analysis_run_laptop(setup_num, dataset_dir,
                              data_analysis_path, number_of_chains,
-                             hyperparam_tuning, tuning_path, custom_delta):
+                             hyperparam_tuning, tuning_path, custom_delta,
+                             missing_data):
     for chainnum in range(1, number_of_chains + 1):
         data_analysis_run_single_chain.main(setup_num,
                                             dataset_dir,
                                             data_analysis_path,
                                             chainnum,
                                             hyperparam_tuning, tuning_path,
-                                            custom_delta)
+                                            custom_delta,
+                                            missing_data)
 
 def data_analysis_run_cluster(setup_num, dataset_dir,
-                              data_analysis_path, number_of_chains):
+                              data_analysis_path, number_of_chains,
+                              custom_delta, missing_data):
     for chainnum in range(1, number_of_chains + 1):
         args_list = list()
         args_list.append(f"SETUPNUM={setup_num}")
         args_list.append(f"DATASETDIR={dataset_dir}")
         args_list.append(f"DATAANALYSISPATH={data_analysis_path}")
         args_list.append(f"CHAINNUM={chainnum}")
+        args_list.append(f"CUSTOMDELTA={custom_delta}")
+        args_list.append(f"MISSINGDATA={missing_data}")
         part_string = ",".join(args_list)
         input_string = "--export" + "=" + part_string
         subprocess.run(["sbatch", input_string, "data_analysis.slurm"])
@@ -139,12 +144,14 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--setup_num", required=True)
     parser.add_argument("--custom_delta", choices = ["1", "0"],)
+    parser.add_argument("--missing_data", choices = ["1", "0"],)
     # parse args
     args = parser.parse_args()
     environ = args.environ
     dataset = args.dataset
     setup_num = int(args.setup_num)
     custom_delta = int(args.custom_delta)
+    missing_data = int(args.missing_data)
     # run data_analysis_setup
     setup_num, dataset_dir, \
         process_dir, data_analysis_path, \
@@ -157,7 +164,8 @@ if __name__ == "__main__":
         data_analysis_run_laptop(setup_num, dataset_dir,
                                  data_analysis_path, number_of_chains,
                                  hyperparam_tuning, tuning_path,
-                                 custom_delta)
+                                 custom_delta, missing_data)
     elif args.environ == "cluster":
         data_analysis_run_cluster(setup_num, dataset_dir,
-                                  data_analysis_path, number_of_chains)
+                                  data_analysis_path, number_of_chains,
+                                  custom_delta, missing_data)

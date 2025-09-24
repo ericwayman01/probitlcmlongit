@@ -21,12 +21,13 @@ import tomllib
 from probitlcmlongit import _core
 
 def calculate_waic(setup_num, dataset_dir, data_analysis_path,
-                         chain_results_path, chain_number):
+                         chain_results_path, chain_number, missing_data):
     _core.calculate_waic(setup_num,
                          str(dataset_dir),
                          str(data_analysis_path),
                          str(chain_results_path),
-                         chain_number)
+                         chain_number,
+                         missing_data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -35,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", required=True) # e.g. tang
     parser.add_argument("--setup_num", required=True) # e.g. setup_0001.json
     parser.add_argument("--chain_number", required=True) # e.g. 1
+    parser.add_argument("--missing_data", choices = ["1", "0"],)
     args = parser.parse_args()
     # parse config file
     run_dir = pathlib.Path.cwd()
@@ -49,12 +51,12 @@ if __name__ == "__main__":
     # set up paths
     dataset = args.dataset
     setup_num = int(args.setup_num)
-    chain_number = args.chain_number
-    chain_number = int(chain_number)
+    chain_number = int(args.chain_number)
+    missing_data = int(args.missing_data)
     # set up path to dataset_dir
     dataset_dir = run_dir.joinpath(dataset)
     data_analysis_path = process_dir.joinpath(dataset, f"setup_{setup_num:04}")
     chain_number_dirname = f"chain_{chain_number:03}"
     chain_results_path = data_analysis_path.joinpath(chain_number_dirname)
     calculate_waic(setup_num, dataset_dir, data_analysis_path,
-                   chain_results_path, chain_number)
+                   chain_results_path, chain_number, missing_data)

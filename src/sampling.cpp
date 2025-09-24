@@ -32,8 +32,7 @@
 
 #include <vector>
 #include <algorithm> // for std::min, std::max, std::max_element
-#include <cmath> // for std::log, std::sqrt
-
+#include <cmath> // for std::log, std::sqrt, std::exp
 
 // functions for sampling block 2 for this model
 
@@ -82,6 +81,67 @@ bool check_cond1(std::vector<double> & part_of_conds) {
         return true;
     } else {
         return false;
+    }
+}
+
+// b is the larger value. takes in numbers a and b,
+// calculates log(Phi(b)) and log(Phi(a)),
+// and reutrns Phi(b) - Phi(a)
+double calc_cdf_diff(double b, double a) {
+    double y = log_of_norm_cdf(b);
+    double x = log_of_norm_cdf(a);
+    double result = y + std::log(-std::expm1(x - y));
+    return std::exp(result);
+}
+
+// missing data-related
+arma::uword sample_from_cdf(const arma::vec & my_cdf) {
+    arma::uword len_my_cdf = my_cdf.n_elem;
+    double u = arma::randu();
+    arma::uword i = 0;
+    while (i < len_my_cdf && u > my_cdf[i]) {
+        i += 1;
+    }
+    // deal with edge case
+    if (i == len_my_cdf) {
+        i -= 1;
+    }
+    return i;
+}
+
+// missing data-related
+void sample_Ymat_missing(OtherVals & othervals,
+                         MCMCDraws & draws,
+                         arma::umat & Ymat,
+                         const arma::uword & draw_number) {
+    arma::uword md_respondent_ids_num = othervals.md_respondent_ids.n_elem;
+    arma::mat dMat = get_design_vectors_from_alpha(draws.alpha_current,
+                                                   othervals.design_matrix,
+                                                   othervals.basis_vector);
+    arma::mat dMat_beta = dMat * draws.beta.slice(draw_number);
+   #pragma omp parallel for
+    for (arma::uword i = 0; i < md_respondent_ids_num; ++i) {
+        arma::uvec md_missing_rows = othervals.md_missing_row_nums(i);
+        arma::uword md_missing_rows_num = md_missing_rows.n_elem;
+        for (arma::uword z = 0; z < md_missing_rows_num; ++z) {
+            arma::uword my_row_num = md_missing_rows(z);
+            const arma::uword & J = othervals.dimensions.at("J");
+            for (arma::uword j = 1; j <= J; ++j) {
+                arma::uword M_j = othervals.M_j_s(j - 1);
+                double dntbj = dMat_beta(my_row_num, j - 1);
+                arma::rowvec kappa_j = draws.kappa(j - 1).row(draw_number);
+                arma::vec the_probs(M_j);
+                for (arma::uword m = 0; m < M_j; ++m) {
+                    // do the calc
+                    double b = kappa_j(m + 1) - dntbj;
+                    double a = kappa_j(m) - dntbj;
+                    the_probs(m) = calc_cdf_diff(b, a);
+                }
+                // create cdf
+                arma::vec my_cdf = arma::cumsum(the_probs);
+                Ymat(my_row_num, j - 1) = sample_from_cdf(my_cdf);
+            }
+        }
     }
 }
 

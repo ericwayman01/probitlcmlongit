@@ -39,12 +39,16 @@ if __name__ == "__main__":
                         choices = ["simulation", "data_analysis"],
                         required=True)
     parser.add_argument("--scenario_or_setup_number", required=True)
+    parser.add_argument("--custom_delta", choices = ["1", "0"])
+    parser.add_argument("--missing_data", choices = ["1", "0"])
     # parse arguments
     args = parser.parse_args()
     environ = args.environ
     dir_name = args.dir_name
     type_of_run = args.type_of_run
     scenario_or_setup_number = args.scenario_or_setup_number
+    custom_delta = int(args.custom_delta)
+    missing_data = int(args.missing_data)
     if type_of_run == "simulation":
         # run scenario_launch_setup
         scenario_path, jsonfilename_stem, process_dir, \
@@ -110,7 +114,8 @@ if __name__ == "__main__":
             # now launch data_analysis
             data_analysis_run_laptop(setup_num, dataset_dir,
                                      data_analysis_path, number_of_chains,
-                                     hyperparam_tuning, tuning_path)            
+                                     hyperparam_tuning, tuning_path,
+                                     custom_delta, missing_data)
             # delete the chain_path before returning to top of loop
             chainnum = 1
             chainnum_dirname = f"chain_{chainnum:03}"

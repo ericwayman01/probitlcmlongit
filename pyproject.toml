@@ -15,17 +15,19 @@ classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12"
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13"
 ]
 
 dependencies = [
-    "pybind11",
-    "numpy<=1.26.4",
-    "scipy",
-    "pandas",
+    "duckdb",
+    "jinja2",
     "matplotlib",
+    "numpy",
+    "pandas",
+    "pybind11",
     "scikit_learn",
-    "jinja2"
+    "scipy"
 ]
 
 [project.optional-dependencies]

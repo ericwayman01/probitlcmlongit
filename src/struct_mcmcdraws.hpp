@@ -29,10 +29,10 @@ struct MCMCDraws {
     arma::mat Ymat_star_current;
     arma::mat Ymat_star_previous;
     arma::cube beta;
-    arma::Cube<arma::uword> delta;
+    arma::ucube delta;
     arma::field<arma::mat> kappa;
-    arma::Mat<arma::uword> alpha_current;
-    arma::Mat<arma::uword> alpha_previous;
+    arma::umat alpha_current;
+    arma::umat alpha_previous;
     arma::mat alpha_star_current;
     arma::mat alpha_star_previous;
     arma::cube Rmat;

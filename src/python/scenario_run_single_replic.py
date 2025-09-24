@@ -37,8 +37,9 @@ def main(jsonfilename_stem, other_json_files_path,
          scenario_path, scenario_datagen_params_path,
          scenario_number_zb, replicnum,
          number_of_replics,
-         hyperparam_tuning=False,
-         tuning_path=""):
+         hyperparam_tuning = False,
+         tuning_path = "",
+         missing_data = 0):
     # create directory for this particular replication
     replicnum_dirname = f"replic_{replicnum:03}"
     replic_path = scenario_path.joinpath(replicnum_dirname)
@@ -53,7 +54,8 @@ def main(jsonfilename_stem, other_json_files_path,
                           str(scenario_datagen_params_path),
                           str(replic_path),
                           hyperparam_tuning,
-                          str(tuning_path))
+                          str(tuning_path),
+                          missing_data)
     # build report
     jsonfilename = jsonfilename_stem + ".json"
     jsonfile_src_path  = scenario_path.joinpath(jsonfilename)
@@ -70,8 +72,8 @@ def main(jsonfilename_stem, other_json_files_path,
         convergence_test.run_geweke_test(replic_path,
                                          data)
         # delete draws_*.txt
-        for p in replic_path.glob("draws_*.txt"):
-            p.unlink()
+        # for p in replic_path.glob("draws_*.txt"):
+        #     p.unlink()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -82,6 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("--scenario_number_zb")
     parser.add_argument("--replicnum")
     parser.add_argument("--number_of_replics")
+    parser.add_argument("--missing_data")
     args = parser.parse_args()
     jsonfilename_stem = args.jsonfilename_stem
     other_json_files_path = Path(args.other_json_files_path)
@@ -90,6 +93,8 @@ if __name__ == "__main__":
     scenario_number_zb = int(args.scenario_number_zb)
     replicnum = int(args.replicnum)
     number_of_replics = int(args.number_of_replics)
+    missing_data = int(args.missing_data)
     main(jsonfilename_stem, other_json_files_path,
          scenario_path, scenario_datagen_params_path,
-         scenario_number_zb, replicnum, number_of_replics)
+         scenario_number_zb, replicnum, number_of_replics,
+         missing_data=missing_data)

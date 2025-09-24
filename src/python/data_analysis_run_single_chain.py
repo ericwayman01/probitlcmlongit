@@ -31,7 +31,8 @@ import json
 
 
 def main(setup_num, dataset_dir, data_analysis_path, chainnum,
-         hyperparam_tuning=False, tuning_path="", custom_delta=0):
+         hyperparam_tuning=False, tuning_path="", custom_delta=0,
+         missing_data=0):
     # create directory for this particular chain
     chainnum_dirname = f"chain_{chainnum:03}"    
     chain_results_path = data_analysis_path.joinpath(chainnum_dirname)
@@ -43,7 +44,8 @@ def main(setup_num, dataset_dir, data_analysis_path, chainnum,
                                   str(chain_results_path),
                                   chainnum,
                                   hyperparam_tuning, str(tuning_path),
-                                  custom_delta)
+                                  custom_delta,
+                                  missing_data)
     # build report
     jsonfilename = f"setup_{setup_num:04}.json"
     jsonfile_src_path  = data_analysis_path.joinpath(jsonfilename)
@@ -69,9 +71,14 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_dir")
     parser.add_argument("--data_analysis_path")
     parser.add_argument("--chainnum")
+    parser.add_argument("--custom_delta")
+    parser.add_argument("--missing_data")
     args = parser.parse_args()
     setup_num = int(args.setup_num)
     dataset_dir = Path(args.dataset_dir)
     data_analysis_path = Path(args.data_analysis_path)
     chainnum = int(args.chainnum)
-    main(setup_num, dataset_dir, data_analysis_path, chainnum)
+    custom_delta = int(args.custom_delta)
+    missing_data = int(args.missing_data)
+    main(setup_num, dataset_dir, data_analysis_path, chainnum, False, "",
+         custom_delta, missing_data)

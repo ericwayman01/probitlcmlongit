@@ -29,6 +29,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>  // type conversion
 
+#include <string>
+#include <cmath> // for std::ceil
+#include <algorithm> // for std::sort
+
 namespace py = pybind11;
 
 void find_initial_alphas(std::string process_dir, std::string path_to_Ymat,
@@ -76,13 +80,15 @@ void initialize_star_variable(arma::mat & Ymat_star_current,
     }
 }
 
-void initialize_mcmc_variables(const OtherVals & othervals,
+
+void initialize_mcmc_variables(OtherVals & othervals,
                                MCMCDraws & draws,
-                               const arma::umat & Ymat,
+                               arma::umat & Ymat,
                                const arma::mat & Xmat,
                                int seed_value,
                                const DatagenVals & datagenvals,
-                               bool is_simulation) {
+                               bool is_simulation,
+                               int missing_data) {
     const arma::uword & T = othervals.dimensions.at("T");
     const arma::uword & N = othervals.dimensions.at("N");
     const arma::uword & J = othervals.dimensions.at("J");
@@ -103,6 +109,142 @@ void initialize_mcmc_variables(const OtherVals & othervals,
     if (!is_simulation) {
         draws.Ymat_pred_chunk = arma::ucube(T * N, J, othervals.stream_max_val);
         draws.alpha_chunk = arma::ucube(T * N, K, othervals.stream_max_val);
+    }
+    arma::uword ctr_rows = 0;
+    arma::uword ctr_md = 0;
+    if (missing_data == 1 && is_simulation) { // operates on fanned data
+        // (recall that simulation datagen is done in fanned form)
+        arma::uword my_NT = Ymat.n_rows;
+        // find missing_pct position
+        // k is 1-based
+        arma::uword k = std::ceil(my_NT * othervals.missing_data_pct);
+        // ob means 1-based
+        arma::uvec all_row_ids = arma::regspace<arma::uvec>(0, my_NT - 1);
+        arma::uvec all_row_ids_shuffled = arma::shuffle(all_row_ids);
+        arma::uvec missing_row_ids = all_row_ids_shuffled.subvec(0, k - 1);
+        // build map_of_vecs1 (eventually convert to a field of uvecs)
+        // and map_of_vecs2
+        std::map<arma::uword, std::vector<arma::uword>> map_of_vecs1;
+        std::map<arma::uword, std::vector<arma::uword>> map_of_vecs2;
+        for (arma::uword i = 0; i < missing_row_ids.n_elem; ++i) {
+            int row_id = missing_row_ids(i);
+            int t = row_id / N + 1;
+            int n = row_id - N * (t - 1) + 1;
+            if (map_of_vecs1.find(n) == map_of_vecs1.end()) {
+                map_of_vecs1[n] = std::vector<arma::uword>();
+            }
+            map_of_vecs1[n].push_back(row_id);
+            if (map_of_vecs2.find(n) == map_of_vecs2.end()) {
+                map_of_vecs2[n] = std::vector<arma::uword>();
+            }
+            map_of_vecs2[n].push_back(t);
+        }
+        // take the keys of the map and put them in a uvec
+        // (first put them in a vector)
+        std::vector<arma::uword> my_keys;
+        arma::uword ctr;
+        for (
+                std::map<arma::uword,
+                         std::vector<arma::uword>>::iterator it =
+                    map_of_vecs1.begin();
+                    it != map_of_vecs1.end(); ++it) {
+            my_keys.push_back(it->first);
+        }
+        std::sort(my_keys.begin(), my_keys.end());
+        othervals.md_respondent_ids = arma::conv_to<arma::uvec>::from(my_keys);
+        // build respondent_counts
+        othervals.respondent_counts = arma::uvec(N);
+        for (arma::uword n = 1; n <= N; ++n) {
+            if (std::find(my_keys.begin(), my_keys.end(), n) == my_keys.end()) {
+                othervals.respondent_counts(n - 1) = T;
+            } else {
+                othervals.respondent_counts(n - 1) = T - map_of_vecs2[n].size();
+            }
+        }
+        // initialize field
+        othervals.md_missing_row_nums =
+            arma::field<arma::uvec>(othervals.md_respondent_ids.n_elem);
+        othervals.md_missing_row_nums_nonfanned =
+            arma::field<arma::uvec>(othervals.md_respondent_ids.n_elem);
+        arma::uword idx = 0;
+        for (const auto & x : my_keys) {
+            std::vector<arma::uword> tmpvec = map_of_vecs1[x];
+            std::sort(tmpvec.begin(), tmpvec.end());
+            arma::uvec my_row_ids = arma::conv_to<arma::uvec>::from(tmpvec);
+            othervals.md_missing_row_nums(idx) = my_row_ids;
+            idx += 1;
+        }
+        // note: the above replaces the use of the find_missing_row_nums
+        //     function
+        // we still need the find_missing_row_nums_nonfanned information
+        //     so we call that function now
+        // first, we build md_pos_missing
+        // then, we run find_missing_row_nums_nonfanned
+        idx = 0;
+        arma::uword my_keys_len = my_keys.size();
+        othervals.md_pos_missing = arma::field<arma::uvec>(my_keys_len);
+        for (const auto & x : my_keys) {
+            std::vector<arma::uword> tmpvec = map_of_vecs2[x];
+            std::sort(tmpvec.begin(), tmpvec.end());
+            arma::uvec my_ts = arma::conv_to<arma::uvec>::from(tmpvec);
+            othervals.md_pos_missing(idx) = my_ts;
+            idx += 1;
+        }
+        find_missing_row_nums_nonfanned(othervals);
+        Ymat = rearrange_data_to_nonfanned_umat(Ymat, N, T);
+    }
+    // do initialization
+    if (missing_data == 1) { // operates on nonfanned data
+        arma::uword mod_number;
+        if (is_simulation) {
+            mod_number = 30;
+        } else {
+            mod_number = 6;
+        }
+        arma::uword md_num = othervals.md_respondent_ids.n_elem;
+        for (arma::uword i = 0; i < md_num; ++i) {
+            // in this loop, pos_vec1 is the uvec of missing positions for
+            //     missing data respondent i
+            // pos_vec2 is the uvec missing row nums of missing data
+            //     respondent i in non-fanned form
+            arma::uvec pos_vec1 = othervals.md_pos_missing(i);
+            arma::uword pos_vec1_len = pos_vec1.n_elem;
+            arma::uvec pos_vec2 = othervals.md_missing_row_nums_nonfanned(i);
+            arma::uword pos_vec2_len = pos_vec2.n_elem;
+            for (arma::uword this_pos = 0; this_pos < pos_vec1_len;
+                 ++this_pos) {
+                arma::uword pos_vec1_this = pos_vec1(this_pos);
+                if (pos_vec1_this % mod_number == 1) {
+                    arma::uword j = 0;
+                    bool tmp_flag = true;
+                    while (tmp_flag) {
+                        if (this_pos + j + 1 < pos_vec1_len) {
+                            if (    pos_vec1(this_pos + j + 1) -
+                                    pos_vec1(this_pos + j) > 1) {
+                                tmp_flag = false;
+                            } else {
+                                j += 1;
+                            }
+                        } else {
+                            tmp_flag = false;
+                        }
+                    }
+                    Ymat.row(pos_vec2(this_pos)) = Ymat.row(
+                        pos_vec2(this_pos) + j + 1);
+                } else {
+                    Ymat.row(pos_vec2(this_pos)) = Ymat.row(
+                        pos_vec2(this_pos) - 1);
+                }
+            }
+        }
+        Ymat = rearrange_data_umat(Ymat, N, T);
+    }
+    //
+    if (missing_data == 1) {
+        std::string fpath = othervals.dataset_dir + "/" + "responses.txt";
+        Ymat.save(fpath, arma::arma_ascii);
+        fpath = othervals.dataset_dir + "/" + "covariates.txt";
+        Xmat.save(fpath, arma::arma_ascii);
     }
     find_initial_alphas(othervals.replic_path, path_to_Ymat,
                         T, N, K,
@@ -189,7 +331,6 @@ void initialize_mcmc_variables(const OtherVals & othervals,
     // omega
     draws.omega = arma::vec(total_chain_length);
     draws.omega(0) = 0.5;
-    // misc stuff
     // initialize derived parameters
     draws.theta_j_mats_sums = arma::field<arma::mat>(J);
     for (arma::uword j = 1; j <= J; ++j) {

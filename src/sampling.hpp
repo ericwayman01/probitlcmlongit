@@ -51,6 +51,15 @@ double calc_L(std::vector<double> &);
 
 bool check_cond1(std::vector<double> &);
 
+// missing data-related
+arma::uword sample_from_cdf(const arma::vec &);
+
+// missing data-related
+void sample_Ymat_missing(OtherVals &,
+                         MCMCDraws &,
+                         arma::umat &,
+                         const arma::uword &);
+
 void sample_beta_and_delta(DatagenVals & datagenvals,
                            const OtherVals &,
                            MCMCDraws &,

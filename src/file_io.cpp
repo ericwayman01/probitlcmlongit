@@ -35,11 +35,9 @@
 
 // helper function
 
-std::string pad_string_with_zeros(int padded_length, std::string fnamestem,
-                                  std::string s) {
+std::string pad_string_with_zeros(std::string s, int padded_length) {
     s.insert(s.begin(), padded_length - s.size(), '0');
-    std::string fname = fnamestem + s + ".txt";
-    return fname;
+    return s;
 }
 
 // major functions
@@ -88,21 +86,22 @@ void write_mcmc_output(MCMCDraws & draws, DatagenVals & datagenvals,
     const arma::uword & H_K = othervals.dimensions.at("H_K");
     std::string filename;
     //// write out kappas
-    for (arma::uword j = 1; j <= J; ++j) { 
-        std::string fname = pad_string_with_zeros(3, "draws_kappa_",
-                                                  std::to_string(j));
+    for (arma::uword j = 1; j <= J; ++j) {
+        std::string fname = "draws_kappa_"
+            + pad_string_with_zeros(std::to_string(j), 3) + ".abin";
         filename = othervals.replic_path + "/" + fname;
         // write out the matrix of kappa draws
-        draws.kappa(j - 1).save(filename, arma::arma_ascii);
+        draws.kappa(j - 1).save(filename, arma::arma_binary);
         // write out the rowvec of the average of the above matrix
-        fname = pad_string_with_zeros(3, "average_kappa_", std::to_string(j));
+        fname = "average_kappa_"
+            + pad_string_with_zeros(std::to_string(j), 3) + ".txt";
         filename = othervals.replic_path + "/" + fname;
         arma::rowvec average_kappa_j = arma::sum(draws.kappa(j - 1), 0);
         average_kappa_j = average_kappa_j / chain_length_after_burnin;
         average_kappa_j.save(filename, arma::arma_ascii);
     }
-    filename = othervals.replic_path + "/" + "draws_omega" + ".txt";
-    draws.omega.save(filename, arma::arma_ascii);
+    filename = othervals.replic_path + "/" + "draws_omega" + ".abin";
+    draws.omega.save(filename, arma::arma_binary);
     // before permuting, calculate our performance metric
     arma::umat mode_alphas = calc_mode_alphas(draws.class_counts, othervals);
     filename = othervals.replic_path + "/" + "mode_alphas.txt";
@@ -219,10 +218,10 @@ void write_mcmc_output(MCMCDraws & draws, DatagenVals & datagenvals,
         // index = k - 1;
         k_string = std::to_string(k);
         filename = othervals.replic_path + "/" +
-            "draws_gamma_" + k_string + ".txt";
+            "draws_gamma_" + k_string + ".abin";
         // write out the matrix of kappa draws, using the proper index
         //     (from the inverse permutation)
-        draws.gamma(index).save(filename, arma::arma_ascii);
+        draws.gamma(index).save(filename, arma::arma_binary);
         // write out the rowvec of the average of the above matrix
         filename = othervals.replic_path + "/" +
             "average_gamma_" + k_string + ".txt";
@@ -233,29 +232,31 @@ void write_mcmc_output(MCMCDraws & draws, DatagenVals & datagenvals,
         average_gamma_k.save(filename, arma::arma_ascii);
     }
     // write results to files
-    write_output_cube(othervals, draws.delta, "delta");    
+    write_output_cubelike(othervals, draws.delta, "delta",
+                          "arma_binary");    
     write_output_cube_average(othervals, draws.delta, "delta",
                               chain_length_after_burnin);
-    write_output_cube(othervals, draws.beta, "beta");
+    write_output_cubelike(othervals, draws.beta, "beta", "arma_binary");
     write_output_cube_average(othervals, draws.beta, "beta",
                               chain_length_after_burnin);
-    write_output_cube(othervals, draws.Rmat, "Rmat");
+    write_output_cubelike(othervals, draws.Rmat, "Rmat", "arma_binary");
     write_output_cube_average(othervals, draws.Rmat, "Rmat",
                               chain_length_after_burnin);
-    write_output_cube(othervals, draws.lambda, "lambda");
+    write_output_cubelike(othervals, draws.lambda, "lambda", "arma_binary");
     write_output_cube_average(othervals, draws.lambda, "lambda",
                               chain_length_after_burnin);
-    write_output_cube(othervals, draws.xi, "xi");
+    write_output_cubelike(othervals, draws.xi, "xi", "arma_binary");
     write_output_cube_average(othervals, draws.xi, "xi",
                               chain_length_after_burnin);
     // // write out theta_j_mat_avg values
     for (arma::uword j = 1; j <= J; ++j) {
-        std::string fname = pad_string_with_zeros(3, "theta_j_mat_avg_",
-                                                  std::to_string(j));
+        std::string fname = "theta_j_mat_avg_"
+            + pad_string_with_zeros(std::to_string(j), 3)
+            + ".txt";
         filename = othervals.replic_path + "/" + fname;
         theta_j_mats_avgs(j - 1).save(filename, arma::arma_ascii);
     }
-    write_output_cube(othervals, draws.Sigma, "Sigma");
+    write_output_cubelike(othervals, draws.Sigma, "Sigma", "arma_binary");
     write_output_cube_average(othervals, draws.Sigma, "Sigma",
                               chain_length_after_burnin);
     // write out alpha_counts

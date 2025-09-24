@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("--environ", choices = ["laptop", "cluster"],
                         required=True)
     parser.add_argument("--sim_info_dir_name", required=True)
-    parser.add_argument("--scenarionumber", required=True)
+    parser.add_argument("--scenario_num", required=True)
     args = parser.parse_args()
 
     # run_dir = pathlib.Path.cwd()
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     sim_info_dir_name = pathlib.Path(args.sim_info_dir_name)
     process_dir = process_dir.joinpath(sim_info_dir_name)
 
-    scenario_number = int(args.scenarionumber)
-    jsonfilename_stem = f"scenario_{scenario_number:04}"
+    scenario_num = int(args.scenario_num)
+    jsonfilename_stem = f"scenario_{scenario_num:04}"
     jsonfilename = jsonfilename_stem + ".json"
     scenario_path = process_dir.joinpath(jsonfilename_stem)
     schema_file_path = scenario_path.joinpath(jsonfilename)

@@ -77,7 +77,7 @@ def calculate_beta_statistics(draws_beta, datagen_beta, avg_beta,
     betahat_avg_error = np.abs(avg_beta - datagen_beta)
     fname = "stat_beta.txt"
     fpath = replic_path.joinpath(fname)
-    _core.save_arma_mat_np(betahat_avg_error, str(fpath))
+    _core.save_arma_mat_np(betahat_avg_error, str(fpath), "arma_ascii")
     beta_dict["betahat_avg_error"] = report_helpers.convert_table_to_html(
         betahat_avg_error, True)
     return beta_dict    
@@ -95,7 +95,7 @@ def calculate_delta_statistics(draws_delta, datagen_delta, avg_delta,
     # save stat
     fname = "stat_delta.txt"
     fpath = replic_path.joinpath(fname)
-    _core.save_arma_mat_np(deltahat_avg_error, str(fpath))
+    _core.save_arma_mat_np(deltahat_avg_error, str(fpath), "arma_ascii")
     delta_dict = dict()
     delta_dict["num_matches_table"] = pd.DataFrame(num_matches_table).to_html()
     delta_dict["datagen_delta"] = pd.DataFrame(datagen_delta).to_html()
@@ -130,12 +130,12 @@ def calculate_beta_and_delta_stats(scenario_path,
                                    burnin, effects_list):
     # load everything
     ## load delta
-    fpath = replic_path.joinpath("draws_delta.txt")
+    fpath = replic_path.joinpath("draws_delta.abin")
     draws_delta = _core.load_arma_ucube_np(str(fpath))
     fpath = scenario_datagen_params_path.joinpath("datagen_delta.txt")
     datagen_delta = _core.load_arma_umat_np(str(fpath))
     ## load beta
-    fpath = replic_path.joinpath("draws_beta.txt")
+    fpath = replic_path.joinpath("draws_beta.abin")
     draws_beta = _core.load_arma_cube_np(str(fpath))
     fpath = scenario_datagen_params_path.joinpath("datagen_beta.txt")
     datagen_beta = _core.load_arma_mat_np(str(fpath))
@@ -187,7 +187,7 @@ def calculate_theta_statistics(scenario_path, scenario_datagen_params_path,
         theta_j_stat = np.abs(theta_j_hat - datagen_theta_j)
         fname = f"stat_theta_j_{j:03}.txt"
         fpath = replic_path.joinpath(fname)
-        _core.save_arma_mat_np(theta_j_stat, str(fpath))
+        _core.save_arma_mat_np(theta_j_stat, str(fpath), "arma_ascii")
         theta_mat_stats_list.append(report_helpers.convert_table_to_html(
             theta_j_stat, True))
         # sum up values for each J and store them (so when we do the
@@ -212,7 +212,7 @@ def calculate_simple_average_param_stat(scenario_datagen_params_path,
     param_stat = np.abs(avg_param - datagen_param)
     fname = f"stat_{param_name}.txt"
     fpath = replic_path.joinpath(fname)
-    _core.save_arma_mat_np(param_stat, str(fpath))        
+    _core.save_arma_mat_np(param_stat, str(fpath), "arma_ascii")
     return report_helpers.convert_table_to_html(param_stat, True)
 
 def calculate_gamma_statistics(scenario_datagen_params_path, replic_path,
@@ -239,7 +239,7 @@ def calculate_gamma_statistics(scenario_datagen_params_path, replic_path,
             param_stat = np.abs(avg_param - datagen_param)
             fname = f"stat_gamma_{k}.txt"
             fpath = replic_path.joinpath(fname)
-            _core.save_arma_mat_np(param_stat, str(fpath))        
+            _core.save_arma_mat_np(param_stat, str(fpath), "arma_ascii")
             gamma_stats_dict[k] = report_helpers.convert_table_to_html(
                 param_stat, True)
     return gamma_stats_dict
@@ -312,7 +312,6 @@ def generate_report(scenario_path,
     vars_dict["replicnum"] = replicnum
     jinja_env = jinja2.Environment(loader=jinja2.PackageLoader(
         "probitlcmlongit", "templates"))
-    template_fname = ""
     template_fname = "replication_longit_template.html"
     template = jinja_env.get_template(template_fname)
     html_out = template.render(vars_dict=vars_dict,

@@ -88,4 +88,5 @@ def find_initial_alphas(process_dir, path_to_Ymat, T, N, K, L_k_s, seed_value):
     # save it
     process_dir = pathlib.Path(process_dir)
     _core.save_arma_umat_np(alphas,
-                            str(process_dir.joinpath("initial_alphas.txt")))
+                            str(process_dir.joinpath("initial_alphas.txt")),
+                            "arma_ascii")

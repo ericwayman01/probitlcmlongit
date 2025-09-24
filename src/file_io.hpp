@@ -31,13 +31,19 @@
 // template functions
 
 template <typename TName>
-void write_output_cube(OtherVals & othervals,
-                       arma::Cube<TName> & draws_cube,
-                       std::string parameter_name) {
+void write_output_cubelike(OtherVals & othervals,
+                           arma::Cube<TName> & draws_cube,
+                           std::string parameter_name,
+                           std::string file_type) {
     std::string filename;
-    filename = othervals.replic_path +
-        "/" + "draws_" + parameter_name + ".txt";
-    draws_cube.save(filename, arma::arma_ascii);
+    filename = othervals.replic_path + "/" + "draws_" + parameter_name;
+    if (file_type == "arma_ascii") {
+        filename = filename + ".txt";
+        draws_cube.save(filename, arma::arma_ascii);
+    } else if (file_type == "arma_binary") {
+        filename = filename + ".abin";
+        draws_cube.save(filename, arma::arma_binary);
+    }
 }
 
 
@@ -66,8 +72,7 @@ void write_output_cube_average(OtherVals & othervals,
 
 // helper functions
 
-std::string pad_string_with_zeros(int, std::string,
-                                  std::string);
+std::string pad_string_with_zeros(std::string, int);
 
 // major functions
 

@@ -37,12 +37,27 @@ void initialize_star_variable(arma::mat &,
                               const arma::umat &,
                               const arma::uword &, const arma::uword &);
 
-void initialize_mcmc_variables(const OtherVals &,
+void initialize_mcmc_variables(OtherVals &,
                                MCMCDraws &,
-                               const arma::umat &,
+                               arma::umat &,
                                const arma::mat &,
                                int,
                                const DatagenVals &,
-                               bool);
+                               bool,
+                               int);
+
+// missing data-related
+// https://stackoverflow.com/questions/27686319/c-armadillo-modulus-function
+/**
+ * Extend division reminder to armadillo vectors
+ *
+ * @param   a       Dividend 
+ * @param   n       Divisor
+ */
+template<typename T>
+T arma_mod(T a, int n)
+{
+    return a - floor(a/n)*n;
+}
 
 #endif

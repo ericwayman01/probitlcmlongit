@@ -103,10 +103,34 @@ arma::urowvec calc_total_class_counts_for_single_draw(
             const arma::uvec &,
             const arma::uword &);
 
+// missing data-related
+arma::field<arma::uvec> load_missing_data_positions(
+    std::string,
+    std::string);
+
+// missing data-related
+void find_missing_row_nums(OtherVals &);
+
+// missing data-related
+void find_missing_row_nums_nonfanned(OtherVals &);
+
+// missing data-related
+arma::umat rearrange_data_to_nonfanned_umat(const arma::umat &,
+                                            arma::uword, arma::uword);
+
+// missing data-related
+arma::umat rearrange_data_umat(const arma::umat &,
+                               arma::uword, arma::uword);
+
+// missing data-related
+void build_Ymat_w_missing_rows_empty(OtherVals &,
+                                     arma::umat &);
+
 void run_mcmc(DatagenVals &, OtherVals &, MCMCDraws &,
-              const arma::umat &,
+              arma::umat &,
               const arma::mat &,
-              bool);
+              bool,
+              int);
 
 nlohmann::json read_json_file(std::string);
 
@@ -119,7 +143,8 @@ void run_replication(std::string,
                      std::string,
                      std::string,
                      bool,
-                     std::string);
+                     std::string,
+                     int);
 
 void run_data_analysis_chain(int,
                              std::string,
@@ -128,6 +153,7 @@ void run_data_analysis_chain(int,
                              int,
                              bool,
                              std::string,
+                             int,
                              int);
 
 #endif

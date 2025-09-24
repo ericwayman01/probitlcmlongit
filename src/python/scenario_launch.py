@@ -70,8 +70,9 @@ def scenario_launch_laptop(jsonfilename_stem,
                            process_dir, other_json_files_path,
                            number_of_replics,
                            scenario_number_zb,
-                           hyperparam_tuning=False,
-                           tuning_path=""):
+                           hyperparam_tuning = False,
+                           tuning_path = "",
+                           missing_data = 0):
     scenario_path = process_dir.joinpath(jsonfilename_stem)
     scenario_datagen_params_path = scenario_path.joinpath("datagen_params")
     for replicnum in range(1, number_of_replics + 1):
@@ -83,29 +84,31 @@ def scenario_launch_laptop(jsonfilename_stem,
                                         replicnum,
                                         number_of_replics,
                                         hyperparam_tuning,
-                                        tuning_path)
+                                        tuning_path,
+                                        missing_data)
 
 def scenario_launch_cluster(jsonfilename_stem,
                             process_dir, other_json_files_path,
                             number_of_replics,
-                            scenario_number_zb):
+                            scenario_number_zb,
+                            missing_data):
     # note that for environ cluster, must check that all runs are complete
     #     before generating final report
     scenario_path = process_dir.joinpath(jsonfilename_stem) 
     scenario_datagen_params_path = scenario_path.joinpath("datagen_params")
     for replicnum in range(1, number_of_replics + 1):
-        fstring_part_one = f"JSONFILENAMESTEM={jsonfilename_stem}"
-        fstring_part_one_pt_five = f"OTHERJSONFILESPATH={other_json_files_path}"
-        fstring_part_two = f"SCENARIOPATH={scenario_path}"
-        fstring_part_two_pt_five = f"SCENARIODATAGENPARAMSPATH={scenario_datagen_params_path}"
-        fstring_part_three = f"SCENARIONUMBERZB={scenario_number_zb}"        
-        fstring_part_four = f"REPLICNUM={replicnum}"
-        fstring_part_five = f"NUMBEROFREPLICS={number_of_replics}"
-        input_string = "--export" + "=" + fstring_part_one + "," \
-            + fstring_part_one_pt_five + "," \
-            + fstring_part_two + "," + fstring_part_two_pt_five + "," \
-            + fstring_part_three \
-            + "," + fstring_part_four + "," + fstring_part_five
+        args_list = list()
+        args_list.append(f"JSONFILENAMESTEM={jsonfilename_stem}")
+        args_list.append(f"OTHERJSONFILESPATH={other_json_files_path}")
+        args_list.append(f"SCENARIOPATH={scenario_path}")
+        args_list.append(
+            f"SCENARIODATAGENPARAMSPATH={scenario_datagen_params_path}")
+        args_list.append(f"SCENARIONUMBERZB={scenario_number_zb}")
+        args_list.append(f"REPLICNUM={replicnum}")
+        args_list.append(f"NUMBEROFREPLICS={number_of_replics}")
+        args_list.append(f"MISSINGDATA={missing_data}")
+        part_string = ",".join(args_list)
+        input_string = "--export" + "=" + part_string
         subprocess.run(["sbatch", input_string, "simulation.slurm"])
 
 ## main
@@ -116,11 +119,13 @@ if __name__ == "__main__":
                         required=True)
     parser.add_argument("--sim_info_dir_name", required=True)
     parser.add_argument("--scenarionumber", required=True)
+    parser.add_argument("--missing_data", choices = ["1", "0"])
     # parse args
     args = parser.parse_args()
     environ = args.environ
     sim_info_dir_name = args.sim_info_dir_name
     scenarionumber = args.scenarionumber
+    missing_data = int(args.missing_data)
     # run scenario_launch_setup
     scenario_path, jsonfilename_stem, process_dir, \
         other_json_files_path, number_of_replics, \
@@ -135,8 +140,10 @@ if __name__ == "__main__":
                                other_json_files_path,
                                number_of_replics, scenarionumber_zb,
                                hyperparam_tuning,
-                               tuning_path)
+                               tuning_path,
+                               missing_data)
     elif environ == "cluster":
         scenario_launch_cluster(jsonfilename_stem, process_dir,
                                 other_json_files_path,
-                                number_of_replics, scenarionumber_zb)
+                                number_of_replics, scenarionumber_zb,
+                                missing_data)

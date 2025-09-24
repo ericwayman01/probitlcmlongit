@@ -91,7 +91,8 @@ def calculate_theta_stats(schema_file_path, scenario_path,
     avg_theta_stat = avg_theta_stat / H_K
     avg_of_avg_theta_stat = np.mean(avg_theta_stat)
     fname = "avg_of_avg_theta_stat.txt"
-    report_helpers.save_single_value(avg_of_avg_theta_stat, scenario_path, fname)
+    report_helpers.save_single_value(avg_of_avg_theta_stat, scenario_path,
+                                     fname)
     results_dict["avg_theta_stat"] = report_helpers.convert_table_to_html(
         avg_theta_stat, True)
     results_dict["avg_of_avg_theta_stat"] = avg_of_avg_theta_stat

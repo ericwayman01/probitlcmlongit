@@ -15,19 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-## standard library
-import argparse
-import json
-import pathlib
-import copy
-import tomllib
+from probitlcmlongit import _core
+from probitlcmlongit import report_helpers
 
 ## other
 import numpy as np
 import pandas as pd
 
-from probitlcmlongit import _core
-from probitlcmlongit import report_helpers
+## standard library
+import argparse, json, pathlib, tomllib
 
 def move_column_inplace(df, col, pos):
     col = df.pop(col)
@@ -55,17 +51,16 @@ def create_and_save_tex_file(scenarios_info_collated, simulation_path,
         df.rename(columns={"gamma": "\\(\\gamma\\)",
                            "theta": "\\(\\eta\\)",
                            "Rmat": "\\(R\\)",
-                           "lambda": "\\(\\lambda\\)"},
-                  inplace = True)
-        df.rename(columns={"xi": "\\(\\xi\\)"},
+                           "lambda": "\\(\\lambda\\)",
+                           "xi": "\\(\\xi\\)"},
                   inplace = True)
     elif table_num == 2:
         df.rename(columns={"beta": "\\(\\beta\\)",
                            "delta": "\\(\\delta\\)",
-                           "avg_of_avg_of_ae_delta_0": "\\(\\delta_0\\)",
-                           "avg_of_avg_of_ae_delta_1": "\\(\\delta_1\\)",
-                           "avg_of_avg_of_ae_beta_0": "\\(\\beta_0\\)",
-                           "avg_of_avg_of_ae_beta_1": "\\(\\beta_1\\)"},
+                           "avg_of_avg_of_ae_delta_0": "\\(\\delta^0\\)",
+                           "avg_of_avg_of_ae_delta_1": "\\(\\delta^1\\)",
+                           "avg_of_avg_of_ae_beta_0": "\\(\\beta^0\\)",
+                           "avg_of_avg_of_ae_beta_1": "\\(\\beta^1\\)"},
                   inplace = True)
     simulation_results_file_path_1 = simulation_path.joinpath(fname)
     with open(simulation_results_file_path_1, "w") as f:

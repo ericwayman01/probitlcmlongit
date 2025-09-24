@@ -29,7 +29,7 @@ def save_single_value(ear, dir_path, fname):
     tmpmat = np.empty((1, 1))
     tmpmat[0, 0] = ear
     fpath = dir_path.joinpath(fname)
-    _core.save_arma_mat_np(tmpmat, str(fpath))
+    _core.save_arma_mat_np(tmpmat, str(fpath), "arma_ascii")
 
 def convert_table_to_html(table, modify_decimal):
     if modify_decimal is False:
