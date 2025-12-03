@@ -129,47 +129,35 @@ Example ``02_list_decided_hyperparam_vals.json``:
 Creating data generating parameters and other necessary files
 -------------------------------------------------------------
 
-Once the above directories and files have been created, the ``probitlcm_extra`` package (available at https://github.com/ericwayman01/probitlcm_extra) will be used to create the data generating parameters and other necessary files.
+Once the above directories and files have been created, the ``probitlcmlongit_extra`` package (available at https://github.com/ericwayman01/probitlcmlongit_extra) will be used to create the data generating parameters and other necessary files. Install that package, and then continue as follows:
 
-The ``probitlcm_extra`` package is used for parameter generation for both the ``probitlcm`` and the ``probitlcmlongit`` packages. For the longitudinal model case, the user is required to first set up a run directory for a cross-sectional model, generate most of the parameters for that model (as explained in the documentation for the ``probitlcm`` package and repeated as part of the instructions here), and then run two additional commands, the first of which copies the data generating parameters for the cross-sectional model into the ``run_dir_sim`` for the longitudinal model, and the second of which generates the xi parameters.
-
-First, install the ``probitlcm_extra`` package (which itself depends on the ``probitlcm`` package for some of its functionality).
-
-Next, from ``run_dir_sim``, run, for example:
+From ``run_dir_sim``, run, for example:
 
 ::
    
-   python3.X -m probitlcm_extra.build_situations_list --sim_info_dir simulation_cross_sec
+   python3.X -m probitlcmlongit_extra.build_situations_list --sim_info_dir simulation_longit
 
-where ``simulation_cross_sec`` is an example of ``<sim_info_dir_name>``. ``02_list_situations.json`` will be placed in ``<run_dir_sim>/<sim_info_dir_name>/json_files`` as a result.
+where ``simulation_longit`` is an example of ``<sim_info_dir_name>``. ``02_list_situations.json`` will be placed in ``<run_dir_sim>/<sim_info_dir_name>/json_files`` as a result.
 
 Now, from ``run_dir_sim``, for a particular ``sim_info_dir_name``, for ``situation_num`` ranging from 1 to the total number of situations (a situation is a particular combination of user-selected non-random values for a scenario to be simulated other than sample size; there are 15 situations in the manuscript).
 
 ::
 
-   python3.X -m probitlcm_extra.generate_lambda --sim_info_dir_name simulation_cross_sec --situation_num 1
+   python3.X -m probitlcmlongit_extra.generate_lambda --sim_info_dir_name simulation_cross_sec --situation_num 1
 
 Then run the command
 
 ::
 
-   python3.X -m probitlcm_extra.create_scenario_params --sim_info_dir simulation_cross_sec --situation_num 1
+   python3.X -m probitlcmlongit_extra.create_scenario_params --sim_info_dir simulation_cross_sec --situation_num 1
 
 for each situation to create most of the necessary data-generating parameters.
 
-Now we perform the two commands that are longitudinal-specific. Run the function
+Finally, we create one additional parameter for each of the situations:
 
 ::
 
-   python3.X -m probitlcm_extra.get_most_params_for_longit --cross_sec_dir_name simulation_cross_sec --longit_dir_name simulation_longit --total_num_of_scenarios 45
-
-which for each scenario will copy the ``datagen_params`` directory from the cross-sectional scenario to the longitudinal scenario.
-
-Then for each scenario, run
-
-::
-
-   python3.X -m probitlcm_extra.generate_xi --sim_info_dir_name simulation_longit --situation_num 1
+   python3.X -m probitlcmlongit_extra.generate_xi --sim_info_dir_name simulation_longit --situation_num 1
 
    
 Performing hyperparameter tuning
