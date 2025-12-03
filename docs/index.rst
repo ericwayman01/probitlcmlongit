@@ -53,6 +53,10 @@ Contents of ``json_files`` directory:
 - ``02_current_tuning_hyperparam_vals.json``
 - ``02_list_decided_hyperparam_vals.json``
 
+Optional file (if ``missing_data`` is set to ``1`` for a scenario, see below for details):
+
+- ``01_missing_data_pct.json``
+ 
 Example ``01_fixed_vals.json``:
 
 ::
@@ -126,6 +130,13 @@ Example ``02_list_decided_hyperparam_vals.json``:
        ]
    }
 
+Example ``01_missing_data_pct.json`` (contains the percentage of data missing):
+
+::
+
+   [0.10]
+   
+   
 Creating data generating parameters and other necessary files
 -------------------------------------------------------------
 
@@ -315,12 +326,12 @@ Example ``setup_000x.json``:
        ]
    }
    
-Explanation of contents
------------------------
-   
+File contents and formatting
+----------------------------
+
 A dataset may have multiple setups (like scenarios for the simulations).
 
-The ``.csv`` files must be comma-separated and should have a header. It is convenient to save such files from ``R`` using, for example, the function call ``write.csv(df, "nan_test.csv", row.names=FALSE)`` (an equivalent function should exist from Python but has not been tested). The option ``csv_opts::strict`` in Armadillo specifies that "missing" values will be converted to ``arma::datum::nan`` type and that seems to apply to the ``NA`` values (really, the strings ``"NA"``) placed in those cells by R. Presumably any non-numeric type would work, but such situations have not been tested.
+The ``.csv`` files must be comma-separated and should have a header. The rows should not be explicitly numbered in the file.
 
 The data in ``responses.csv`` must be zero-based, i.e. a column ``j`` must run from ``0`` through ``M_j - 1``.
 
@@ -373,6 +384,8 @@ Missing data is supported for the following situation: a subset of respondent id
 ``md_pos_present.json`` contains one JSON array, the elements of which are arrays containing the present time points for a respondent id from ``missing_data_respondents.txt``. The arrays appear in order of respondent id.
 
 For each respondent id, the corresponding arrays for ``md_pos_missing.json`` and ``md_pos_present.json`` are disjoint, and their union is ``[1, ..., T]``.
+
+Examples which show the structure and some content of each of these three files:
 
 ``md_respondent_ids.txt``:
 
